@@ -70,7 +70,7 @@ def pre_tokenization_task (
     start: int,
     end: int,
     special_tokens: list[str]
-) -> Counter:
+) -> Counter[tuple[bytes, ...]]:
     """
     Counting the pre-tokens in each slice of the chunk.
     """
@@ -89,7 +89,7 @@ def pre_tokenization_task (
         for slice in slices:
             for match in re.finditer(PAT, slice):
                 token = match.group()
-                freq_map[token] += 1
+                freq_map[tuple(bytes([b]) for b in token.encode("utf-8"))] += 1
 
     return freq_map
 
@@ -97,7 +97,7 @@ def pre_tokenization_task (
 def parallel_pre_tokenization (
     input_path: str,
     special_tokens: list[str]          
-) -> dict[str, int] :
+) -> dict[tuple[bytes, ...], int] :
     """
     Parallelizing pre-tokenization procedure and return the map from
     token to frequency.
