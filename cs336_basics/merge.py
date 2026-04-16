@@ -1,4 +1,5 @@
 from collections import Counter, defaultdict
+from tqdm import tqdm
 
 
 
@@ -23,7 +24,8 @@ def count_and_index_successive_pairs (
 def merge_pairs(
 	freq_map: dict[tuple[bytes, ...], int],
 	initial_vocab: dict[int, bytes],
-	vocab_size: int
+	vocab_size: int,
+	verbose: bool = False,
 ) -> list[tuple[bytes, bytes]]:
 	
 # 1. Counting initial sucessive pairs of pre-tokens and indexing the pairs to its pre-tokens.
@@ -36,8 +38,7 @@ def merge_pairs(
 	num_of_pairs, index_pairs_to_pretokens = count_and_index_successive_pairs(freq_map)
 	merge_procedure_cache = { key : list(key) for key in freq_map}
 	merges = []
-	while len(initial_vocab) < vocab_size:
-		
+	for step in tqdm(range(vocab_size - len(initial_vocab)), desc="Compute merges", disable=not verbose):
 		pair_to_merge = max(num_of_pairs, key=lambda k: (num_of_pairs[k], k))
 		raw_pretokens_list = index_pairs_to_pretokens[pair_to_merge]
 

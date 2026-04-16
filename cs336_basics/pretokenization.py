@@ -4,6 +4,9 @@ from typing import BinaryIO, Tuple
 from multiprocessing import Pool
 from collections import Counter
 
+from tqdm import tqdm
+
+
 PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
 
 def find_chunk_boundaries(
@@ -94,6 +97,8 @@ def pre_tokenization_task (
 
     return freq_map
 
+def worker(args):
+    return pre_tokenization_task(*args)
 
 def parallel_pre_tokenization (
     input_path: str,
@@ -113,11 +118,10 @@ def parallel_pre_tokenization (
         for start, end in zip(boundaries[:-1], boundaries[1:]):
             args_list.append((input_path, start, end, special_tokens))  
 
-        
         with Pool() as pool:
-            results = pool.starmap(pre_tokenization_task, args_list) 
-            for map in results:
-                freq_map_in_all.update(map)
+            for result in tqdm(pool.imap_unordered(worker, args_list), total=len(args_list), desc="Pre-tokenization"):
+                freq_map_in_all.update(result)
+       
 
 
     return dict(freq_map_in_all)

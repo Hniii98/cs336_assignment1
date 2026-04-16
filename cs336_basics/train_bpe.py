@@ -5,7 +5,8 @@ from .utils import AutoKeyDictWrapper
 def train_bpe(
 	input_path: str,
 	vocab_size: int,
-	special_tokens: list[str]
+	special_tokens: list[str],
+	verbose: bool = False,
 ) -> tuple[ dict[int, bytes],
 		   	list[tuple[bytes, bytes]]]:
 	
@@ -22,7 +23,8 @@ def train_bpe(
 
 	merges = merge_pairs(freq_map=freq_map, 
 					  	 initial_vocab=initial_vocab.dict, 
-						 vocab_size=vocab_size)
+						 vocab_size=vocab_size,
+						 verbose=verbose)
 
 	return initial_vocab.dict, merges
 	
