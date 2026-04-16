@@ -83,7 +83,8 @@ def pre_tokenization_task (
 
         # Split chunks by using special tokens as hard boundaries
         # to prevent pre-tokenization merges across document boundaries
-        pattern = "|".join(re.escape(token) for token in special_tokens)
+        pattern = "|".join(f"(?:{re.escape(t)})" for t in special_tokens)
+
         slices = re.split(pattern, chunk)
 
         for slice in slices:
@@ -96,7 +97,8 @@ def pre_tokenization_task (
 
 def parallel_pre_tokenization (
     input_path: str,
-    special_tokens: list[str]          
+    special_tokens: list[str],
+    num_processes: int        
 ) -> dict[tuple[bytes, ...], int] :
     """
     Parallelizing pre-tokenization procedure and return the map from
@@ -105,7 +107,6 @@ def parallel_pre_tokenization (
     # Use Counter() to aggregate counts of the same key across multiple dicts.
     freq_map_in_all = Counter()
     with open(input_path, "rb") as f:
-        num_processes = 4
         boundaries = find_chunk_boundaries(f, num_processes, b"<|endoftext|>")
 
         args_list: list[tuple[str, int, int, list[str]]] = []
