@@ -50,7 +50,10 @@ def merge_pairs(
 
 			if len(procedure) == 1: continue
 			
-			for i, (token1, token2) in enumerate(zip(procedure[:-1], procedure[1:])):
+			i = 0
+			# for i, (token1, token2) in enumerate(zip(procedure[:-1], procedure[1:])):
+			while i < len(procedure) - 1:
+				token1, token2 = procedure[i], procedure[i+1]
 				freq_of_ptok = freq_map[ptok]
 				if (token1, token2) == pair_to_merge:
 					"""
@@ -66,7 +69,7 @@ def merge_pairs(
 						num_of_pairs[(procedure[i-1], token1+token2)] += freq_of_ptok
 						index_pairs_to_pretokens[(procedure[i-1], token1+token2)].add(ptok)
 					# Right overlap exits.
-					elif (i + 2) < len(procedure):
+					if (i + 2) < len(procedure):
 						num_of_pairs[(token2, procedure[i+2])] -= freq_of_ptok
 
 						num_of_pairs[(token1+token2, procedure[i+2])] += freq_of_ptok
@@ -78,8 +81,9 @@ def merge_pairs(
 					# Update procedure cache of a pretoken after merging pair.	
 					procedure[i] = token1 + token2
 					procedure.pop(i+1)
-		
-		merges.append(b" ".join((pair_to_merge[0], pair_to_merge[1])))
+
+				i += 1
+		merges.append((pair_to_merge[0], pair_to_merge[1]))
 		initial_vocab[len(initial_vocab)] = pair_to_merge[0]+pair_to_merge[1]
 		
 					
