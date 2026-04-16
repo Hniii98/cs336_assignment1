@@ -77,7 +77,7 @@ def pre_tokenization_task (
     assert special_tokens , "Special token must not be empty or None"
     freq_map = Counter()
 
-    with open(input_path, "r") as f:
+    with open(input_path, "rb") as f:
         f.seek(start)
         chunk = f.read(end - start)
 
@@ -85,7 +85,7 @@ def pre_tokenization_task (
         # to prevent pre-tokenization merges across document boundaries
         pattern = "|".join(f"(?:{re.escape(t)})" for t in special_tokens)
 
-        slices = re.split(pattern, chunk)
+        slices = re.split(pattern, chunk.decode("utf-8"))
 
         for slice in slices:
             for match in re.finditer(PAT, slice):
