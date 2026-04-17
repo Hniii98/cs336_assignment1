@@ -11,6 +11,10 @@ def main():
 	os.makedirs("data/TinyStories", exist_ok=True)
 	
 	bytes_encoder = cs336.bytes_to_unicode()
+
+	longest_token = max(vocab.values(), key=len)
+
+	print(f"longest token is : {longest_token}")
 	
 	vocab_for_json = {
 		cs336.encode_bytes(token_bytes, bytes_encoder): token_id
