@@ -93,7 +93,7 @@ def pre_tokenization_task (
         slices = re.split(pattern, chunk.decode("utf-8"))
         size = len(slices)
         for i, slice in enumerate(slices):
-            if (i + 1) % 1000 == 0 or (i + 1) == size:
+            if (i + 1) % 5000 == 0 or (i + 1) == size:
                 msg_queue.put((worker_id, i + 1, size))
             for match in re.finditer(PAT, slice):
                 token = match.group()
