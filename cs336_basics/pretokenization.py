@@ -1,11 +1,11 @@
 import os
 import regex as re
 from typing import BinaryIO, Tuple
-from multiprocessing import Pool
+from multiprocessing import Pool, Manager
 from collections import Counter
-
+from  threading import Thread
 from tqdm import tqdm
-
+from typing import Any
 
 PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
 
@@ -72,7 +72,9 @@ def pre_tokenization_task (
     input_path: str,
     start: int,
     end: int,
-    special_tokens: list[str]
+    special_tokens: list[str],
+    worker_id: int,
+    msg_queue: Any,
 ) -> Counter[tuple[bytes, ...]]:
     """
     Counting the pre-tokens in each slice of the chunk.
@@ -89,8 +91,10 @@ def pre_tokenization_task (
         pattern = "|".join(f"(?:{re.escape(t)})" for t in special_tokens)
 
         slices = re.split(pattern, chunk.decode("utf-8"))
-
-        for slice in slices:
+        size = len(slices)
+        for i, slice in enumerate(slices):
+            if (i + 1) % 1000 == 0 or (i + 1) == size:
+                msg_queue.put((worker_id, i + 1, size))
             for match in re.finditer(PAT, slice):
                 token = match.group()
                 freq_map[tuple(bytes([b]) for b in token.encode("utf-8"))] += 1
@@ -100,10 +104,27 @@ def pre_tokenization_task (
 def worker(args):
     return pre_tokenization_task(*args)
 
+def consumer_thread(msg_queue: Any,
+                    size: int):
+    pbars = {}
+
+    while True:
+        msg = msg_queue.get()
+        if msg is None:
+            break
+        worker_id, accum, total = msg
+        if worker_id not in pbars:
+            pbars[worker_id] = tqdm(total=total, desc=f"Worker {worker_id}", position=worker_id+1, leave=False)
+        pbars[worker_id].n = accum
+        pbars[worker_id].refresh()
+
+
+
+
 def parallel_pre_tokenization (
     input_path: str,
     special_tokens: list[str],
-    num_processes: int        
+    num_processes: int,      
 ) -> dict[tuple[bytes, ...], int] :
     """
     Parallelizing pre-tokenization procedure and return the map from
@@ -111,17 +132,26 @@ def parallel_pre_tokenization (
     """
     # Use Counter() to aggregate counts of the same key across multiple dicts.
     freq_map_in_all = Counter()
+    # 
+    msg_queue = Manager().Queue()
     with open(input_path, "rb") as f:
         boundaries = find_chunk_boundaries(f, num_processes, b"<|endoftext|>")
 
-        args_list: list[tuple[str, int, int, list[str]]] = []
-        for start, end in zip(boundaries[:-1], boundaries[1:]):
-            args_list.append((input_path, start, end, special_tokens))  
+        # Wrap a tuple with (#input path, #start, #end, #special_tokens, #worker_id)
+        args_list: list[tuple[str, int, int, list[str], int]] = []
+        for i, (start, end) in enumerate(zip(boundaries[:-1], boundaries[1:])):
+            args_list.append((input_path, start, end, special_tokens, i, msg_queue))  
 
-        with Pool() as pool:
+
+        graph_thread = Thread(target=consumer_thread, args=(msg_queue, len(args_list)))
+        graph_thread.start()
+
+        with Pool(processes=num_processes) as pool:
             for result in tqdm(pool.imap_unordered(worker, args_list), total=len(args_list), desc="Pre-tokenization"):
                 freq_map_in_all.update(result)
-       
+        
+        msg_queue.put(None)
+        graph_thread.join()
 
 
     return dict(freq_map_in_all)
