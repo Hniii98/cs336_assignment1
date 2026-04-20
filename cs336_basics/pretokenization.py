@@ -79,6 +79,9 @@ def pre_tokenization_task (
     """
     Counting the pre-tokens in each slice of the chunk.
     """
+
+    if end <= start:
+        return Counter()
     assert special_tokens , "Special token must not be empty or None"
     freq_map = Counter()
 
@@ -90,10 +93,10 @@ def pre_tokenization_task (
         # to prevent pre-tokenization merges across document boundaries
         pattern = "|".join(f"(?:{re.escape(t)})" for t in special_tokens)
 
-        slices = re.split(pattern, chunk.decode("utf-8"))
+        slices = re.split(pattern, chunk.decode("utf-8", errors="ignore"))
         size = len(slices)
         for i, slice in enumerate(slices):
-            if (i + 1) % 5000 == 0 or (i + 1) == size:
+            if (i + 1) % 1000 == 0 or (i + 1) == size:
                 msg_queue.put((worker_id, i + 1, size))
             for match in re.finditer(PAT, slice):
                 token = match.group()
@@ -150,6 +153,23 @@ def parallel_pre_tokenization (
             for result in tqdm(pool.imap_unordered(worker, args_list), total=len(args_list), desc="Pre-tokenization"):
                 freq_map_in_all.update(result)
         
+
+        # Caution: pool.imap_unordered deadlocks silently (futex + worker loss) only on insufficient memory, 
+        # no exception raised. Batch to ease memory pressure.
+        '''
+        batch_size = 16
+        for i in range(0, len(args_list), batch_size):
+            batch = args_list[i:i+batch_size]
+            
+            with Pool(processes=len(batch)) as pool:
+                for result in pool.imap_unordered(worker, batch):
+                    freq_map_in_all.update(result)
+            
+            print(f"Batch {i//batch_size + 1}/{(len(args_list)-1)//batch_size + 1}")
+        '''
+       
+
+
         msg_queue.put(None)
         graph_thread.join()
 
