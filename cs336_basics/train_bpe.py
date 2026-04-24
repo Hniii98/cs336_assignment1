@@ -1,23 +1,7 @@
 from .pretokenization import parallel_pre_tokenization
 from .merge import merge_pairs
-from .utils import AutoKeyDictWrapper
+from .utils import AutoKeyDictWrapper, bytes_to_unicode
 import os
-
-
-def bytes_to_unicode() -> dict[int: str]:
-	valid_bytes = list(range(33, 127)) + list(range(161, 173)) + list(range(174, 256))
-	unicode_map = valid_bytes[:]
-
-	n = 0
-	for i in range(256):
-		if i not in valid_bytes:
-			valid_bytes.append(i)
-			unicode_map.append(256 + n)
-			n +=1
-	
-	unicode_map = [chr(c) for c in unicode_map]
-	return dict(zip(valid_bytes, unicode_map))
-
 
 def encode_bytes(token_bytes: bytes,
 				 encoder: dict[int: str]) -> str:

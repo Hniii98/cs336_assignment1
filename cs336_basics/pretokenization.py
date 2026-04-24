@@ -7,7 +7,7 @@ from  threading import Thread
 from tqdm import tqdm
 from typing import Any
 
-PAT = r"""'(?:[sdmt]|ll|ve|re)| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+"""
+from .utils import PAT
 
 def find_chunk_boundaries(
     file: BinaryIO,
@@ -90,8 +90,9 @@ def pre_tokenization_task (
         chunk = f.read(end - start)
 
         # Split chunks by using special tokens as hard boundaries
-        # to prevent pre-tokenization merges across document boundaries
-        pattern = "|".join(f"(?:{re.escape(t)})" for t in special_tokens)
+        # to prevent pre-tokenization merges across document boundaries.
+        # Slices is special tokens exclusive.
+        pattern = "|".join(f"(?:{re.escape(t)})" for t in special_tokens) 
 
         slices = re.split(pattern, chunk.decode("utf-8", errors="ignore"))
         size = len(slices)
@@ -167,9 +168,6 @@ def parallel_pre_tokenization (
             
             print(f"Batch {i//batch_size + 1}/{(len(args_list)-1)//batch_size + 1}")
         '''
-       
-
-
         msg_queue.put(None)
         graph_thread.join()
 
