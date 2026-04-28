@@ -82,12 +82,13 @@ class Tokenizer:
 		return cls(vocab, merges, special_tokens)
 	
 	def _merges(
+		self,
 		tokens: list[int],
 		pair: tuple[int, int],
 		idx: int,
 	) -> list[int]:
 		"""
-		Replace pair in tokens with idx
+		Replace pair in tokens with new idx.
 		"""
 		newids = []
 
@@ -110,29 +111,42 @@ class Tokenizer:
 		"""
 		lut = {}
 		for pair in zip(tokens, tokens[1:]):
-			if bytes(pair) in self.bytes_to_ids:
-				lut[pair] = self.vocab[bytes(pair)]
+			merged_bytes = self.vocab[pair[0]] + self.vocab[pair[1]]
+			if merged_bytes in self.bytes_to_ids:
+				lut[pair] = self.bytes_to_ids[merged_bytes]
 		return lut
 	
-	def _encode_pretoken(
+	def _get_raw_bytes_ids(
+		self,
+		raw_bytes: list[int],
+	) -> list[int]:
+		"""
+		Fetch ids of list of raw bytes
+		"""
+		ids_of_raw_bytes = []
+		for b in raw_bytes:
+			ids_of_raw_bytes.append(self.bytes_to_ids[bytes([b])])
+		return ids_of_raw_bytes
+			
+	def _merge_within_pretoken(
 		self,
 		pretoken: str
 	) -> list[int]:
 		"""
-		Encode a given pretoken to ids
+		Encode a given pretoken to ids by merging pair within list of raw bytes.
 		"""
-		# Get raw bytes list of pretoken
-		tokens = list(pretoken.encode("utf-8"))
+		raw_bytes = list(pretoken.encode("utf-8"))
+		tokens = self._get_raw_bytes_ids(raw_bytes)
 		while len(tokens) >= 2:
 			lut = self._get_pair_lut(tokens)
-			if lut is None:
+			if not lut:
 				break
 			pair = min(lut, key=lambda p : lut[p])
 			idx = lut[pair]
 			tokens = self._merges(tokens, pair, idx)
 		return tokens
-
-	def _encode_part_text(
+		
+	def _encode_part_of_text(
 		self,
 		part: str,
 	) -> list[int]:
@@ -144,7 +158,8 @@ class Tokenizer:
 		pretokens = re.finditer(PAT, part)
 		for match in pretokens:
 			pretoken = match.group()
-			ids.extend(self._encode_pretoken(pretoken))
+			ids_in_pretoken = self._merge_within_pretoken(pretoken)
+			ids.extend(ids_in_pretoken)
 		return ids
 		
 
@@ -153,19 +168,22 @@ class Tokenizer:
 		text: str
 	) -> list[int]:
 		# 1. Split text by special token into parts.
-		# 2. If part is special token ,return it ids directly, else pretokenize part.
+		# 2. If part is special token ,return its ids directly, else pretokenize part.
 		# 3. For each pretoken, find all pair exists in vocab and keep its ids in dict within pretoken.
 		# 3. Select the minimum ids as top pair to merge.
 		# 4. Repeat #2 and #3, When there is no more pair to merge, end it.
-		pattern = "|".join(f"{re.escape(t)}" for t in self.special_tokens)
+		special_tokens_sorted = sorted(self.special_tokens, key=len, reverse=True)
+		pattern = "(" + "|".join(re.escape(t) for t in special_tokens_sorted) + ")"
 
 		parts = re.split(pattern, text)
 		ids = []
 		for part in parts:
 			if part in self.special_tokens:
-				ids.extend(self.bytes_to_ids[part.encode("utf-8")])
+				ids.append(self.bytes_to_ids[part.encode("utf-8")])
+			elif not part : # empty string caused by continuous special token
+				continue
 			else:
-				ids.extend(self._encode_part_text(part))
+				ids.extend(self._encode_part_of_text(part))
 		return ids
 	
 	def encode_iterable(
@@ -182,7 +200,6 @@ class Tokenizer:
 		tokens = b"".join(self.vocab[id] for id in ids)
 		text = tokens.decode("utf-8", errors="replace")
 
-		return text
-
+		return text	
 
 	
