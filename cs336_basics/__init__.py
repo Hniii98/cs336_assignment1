@@ -4,6 +4,8 @@ from .train_bpe import train_bpe, encode_bytes
 from .utils import bytes_to_unicode
 from .tokenizer import Tokenizer
 from .linear import Linear
+from .embedding import Embedding
+from .rmsnorm import RMSNorm
 
 try:
     __version__ = importlib.metadata.version("cs336_basics")
