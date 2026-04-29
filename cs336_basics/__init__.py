@@ -6,6 +6,7 @@ from .tokenizer import Tokenizer
 from .linear import Linear
 from .embedding import Embedding
 from .rmsnorm import RMSNorm
+from .swiglu import SiLU, SwiGLU
 
 try:
     __version__ = importlib.metadata.version("cs336_basics")
