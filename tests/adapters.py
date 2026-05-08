@@ -211,8 +211,9 @@ def run_rope(
     Returns:
         Float[Tensor, " ... sequence_length d_k"]: Tensor with RoPEd input.
     """
-    raise NotImplementedError
-
+    rope = cs336bs.RotaryPositionalEmbedding(theta, d_k, max_seq_len)
+    in_query_or_key = rope(in_query_or_key, token_positions)
+    return in_query_or_key
 
 def run_transformer_block(
     d_model: int,
