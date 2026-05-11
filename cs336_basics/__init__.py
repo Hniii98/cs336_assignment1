@@ -8,6 +8,7 @@ from .embedding import Embedding
 from .rmsnorm import RMSNorm
 from .swiglu import SiLU, SwiGLU
 from .rope import RotaryPositionalEmbedding
+from .softmax import softmax
 
 try:
     __version__ = importlib.metadata.version("cs336_basics")
