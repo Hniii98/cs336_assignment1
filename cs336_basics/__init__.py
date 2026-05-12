@@ -9,7 +9,7 @@ from .rmsnorm import RMSNorm
 from .swiglu import SiLU, SwiGLU
 from .rope import RotaryPositionalEmbedding
 from .softmax import softmax
-from .attention import scaled_dot_product_attention
+from .attention import scaled_dot_product_attention, MHSA
 
 try:
     __version__ = importlib.metadata.version("cs336_basics")
