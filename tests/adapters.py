@@ -421,7 +421,50 @@ def run_transformer_lm(
         Float[Tensor, "batch_size sequence_length vocab_size"]: Tensor with the predicted unnormalized
         next-word distribution for each token.
     """
-    raise NotImplementedError
+    print(f"context_length: {context_length}")
+    print(f"actual seq_len: {in_indices.shape[-1]}")
+
+
+    transformer_lm = cs336bs.TransformerLM(
+        vocab_size=vocab_size,
+        num_layers=num_layers,
+        d_model=d_model,
+        num_heads=num_heads,
+        d_ff=d_ff,
+        theta=rope_theta,
+        max_seq_len=context_length
+    )
+
+    # Load weight of token embedding layer
+    transformer_lm.embed.embed_lut.data = weights["token_embeddings.weight"]
+
+    # Load weights of tranformer block 
+    for i in range(num_layers):
+        # Load weights of muti-head attention
+        transformer_lm.transformer_blocks[i].multi_head_attention.q_proj.weight.data = weights[f"layers.{i}.attn.q_proj.weight"]
+        transformer_lm.transformer_blocks[i].multi_head_attention.k_proj.weight.data = weights[f"layers.{i}.attn.k_proj.weight"]
+        transformer_lm.transformer_blocks[i].multi_head_attention.v_proj.weight.data = weights[f"layers.{i}.attn.v_proj.weight"]
+        transformer_lm.transformer_blocks[i].multi_head_attention.out_proj.weight.data = weights[f"layers.{i}.attn.output_proj.weight"]
+
+        # Load weights of rmsnorm in attention block and ffn block
+        transformer_lm.transformer_blocks[i].rmsnorm1.g.data = weights[f"layers.{i}.ln1.weight"]
+        transformer_lm.transformer_blocks[i].rmsnorm2.g.data = weights[f"layers.{i}.ln2.weight"]
+
+        # Load weight of linear layer in SwiGLU 
+        transformer_lm.transformer_blocks[i].swiglu.lin1.weight.data = weights[f"layers.{i}.ffn.w1.weight"]
+        transformer_lm.transformer_blocks[i].swiglu.lin2.weight.data = weights[f"layers.{i}.ffn.w2.weight"]
+        transformer_lm.transformer_blocks[i].swiglu.lin3.weight.data = weights[f"layers.{i}.ffn.w3.weight"] 
+    
+    transformer_lm.rmsnorm.g.data = weights["ln_final.weight"]
+    transformer_lm.lin.weight.data = weights["lm_head.weight"]
+
+
+    # Get sequence length
+    seq_len = in_indices.shape[-1]
+    token_pos = torch.tensor(range(seq_len), device=in_indices.device)
+
+    out = transformer_lm(in_indices, token_pos)
+    return out
 
 
 def run_rmsnorm(
