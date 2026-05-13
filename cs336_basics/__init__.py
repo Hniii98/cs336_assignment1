@@ -10,7 +10,7 @@ from .swiglu import SiLU, SwiGLU
 from .rope import RotaryPositionalEmbedding
 from .softmax import softmax
 from .attention import scaled_dot_product_attention, MHSA
-from .transformer import transformer_block
+from .transformer import TransformerBlock
 
 try:
     __version__ = importlib.metadata.version("cs336_basics")

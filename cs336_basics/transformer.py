@@ -9,7 +9,7 @@ from jaxtyping import Float, Int
 from torch import Tensor
 
 
-class transformer_block(nn.Module):
+class TransformerBlock(nn.Module):
 	def __init__(
 		self,
 		d_model: int,

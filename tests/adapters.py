@@ -310,7 +310,7 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    transformer_block = cs336bs.transformer_block(
+    transformer_block = cs336bs.TransformerBlock(
         d_model=d_model, 
         num_heads=num_heads,
         d_ff=d_ff,
