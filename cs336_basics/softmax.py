@@ -2,7 +2,7 @@ import torch
 
 def softmax(
 	x: torch.Tensor,
-	i: int
+	dim: int
 ):
 	"""
 		softmax(x_i) = exp(x_i) / sum(exp(x_i))
