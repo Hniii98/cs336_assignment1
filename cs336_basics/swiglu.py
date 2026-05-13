@@ -25,9 +25,9 @@ class SwiGLU(nn.Module):
 		
 		d_ff = ((d_ff + 32) // 64) * 64 # round to multiple of 64
 
-		self.lin1 = Linear(out_features=d_ff, in_features=d_model)
-		self.lin2 = Linear(out_features=d_model, in_features=d_ff)
-		self.lin3 = Linear(out_features=d_ff, in_features=d_model)
+		self.lin1 = Linear(out_features=d_ff, in_features=d_model, device=device, dtype=dtype)
+		self.lin2 = Linear(out_features=d_model, in_features=d_ff, device=device, dtype=dtype)
+		self.lin3 = Linear(out_features=d_ff, in_features=d_model, device=device, dtype=dtype)
 		
 
 	def forward(
