@@ -17,7 +17,7 @@ class RMSNorm(nn.Module):
 			torch.ones((d_model,), device=device, dtype=dtype)
 		)
 		self.eps = eps
-		self.d_dmodel = d_model
+		self.d_model = d_model
 
 	def forward(
 		self,
@@ -26,7 +26,7 @@ class RMSNorm(nn.Module):
 		in_type = x.dtype
 		x = x.to(torch.float32)
 
-		rms = (reduce(x**2, '... d_model -> ... 1', 'sum') + self.eps) / self.d_dmodel
+		rms = (reduce(x**2, '... d_model -> ... 1', 'sum') + self.eps) / self.d_model
 		rms = torch.sqrt(rms)
 		result = x * self.g / rms
 
