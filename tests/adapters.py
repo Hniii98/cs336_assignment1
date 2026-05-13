@@ -310,7 +310,36 @@ def run_transformer_block(
         Float[Tensor, "batch sequence_length d_model"] Tensor with the output of
         running the Transformer block on the input features while using RoPE.
     """
-    raise NotImplementedError
+    transformer_block = cs336bs.transformer_block(
+        d_model=d_model, 
+        num_heads=num_heads,
+        d_ff=d_ff,
+        theta=theta,
+        max_seq_len=max_seq_len
+    )
+
+    # Load weights of muti-head attention
+    transformer_block.multi_head_attention.q_proj.weight.data = weights["attn.q_proj.weight"]
+    transformer_block.multi_head_attention.k_proj.weight.data = weights["attn.k_proj.weight"]
+    transformer_block.multi_head_attention.v_proj.weight.data = weights["attn.v_proj.weight"]
+    transformer_block.multi_head_attention.out_proj.weight.data = weights["attn.output_proj.weight"]
+
+    # Load weights of rmsnorm in attention block and ffn block
+    transformer_block.rmsnorm1.g.data = weights["ln1.weight"]
+    transformer_block.rmsnorm2.g.data = weights["ln2.weight"]
+
+    # Load weight of linear layer in SwiGLU 
+    transformer_block.swiglu.lin1.weight.data = weights["ffn.w1.weight"]
+    transformer_block.swiglu.lin2.weight.data = weights["ffn.w2.weight"]
+    transformer_block.swiglu.lin3.weight.data = weights["ffn.w3.weight"]
+
+    # Get sequence length of in_features
+    seq_len = in_features.shape[-2]
+
+    token_pos = torch.tensor(range(seq_len), device=in_features.device)
+    out = transformer_block(in_features, token_pos)
+    return out
+
 
 
 def run_transformer_lm(
